@@ -1,0 +1,1 @@
+go run dockerize.go exec.go tail.go template.go -host http://localhost:8989 -template test/test.yaml:result.yaml
