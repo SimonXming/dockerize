@@ -1,0 +1,3 @@
+db:
+    type: {{ configer .ConfigCenterHost "/58bf79678136f344a96105ff/env-01/config-001" "mysql" }}
+    driver: {{ configer .ConfigCenterHost "/58bf79678136f344a96105ff/env-01/config-002" "pymysql"}}
