@@ -1,0 +1,23 @@
+hash: 8a69a3590988118fcb73c9849c60e767d97e70cd5d04f33f1f86d09a532d24f3
+updated: 2017-03-09T12:04:32.449909937+08:00
+imports:
+- name: github.com/elgs/gosplitargs
+  version: a491c5eeb3c841d55913cf4888f5c957be4c598d
+- name: github.com/hpcloud/tail
+  version: faf842bde7ed83bbc3c65a2c454fae39bc29a95f
+  subpackages:
+  - ratelimiter
+  - util
+  - watch
+  - winfile
+- name: github.com/jwilder/gojq
+  version: c550732d4a5279d37cf0064bf7f0283c2fcc44cf
+- name: golang.org/x/net
+  version: a6577fac2d73be281a500b310739095313165611
+  subpackages:
+  - context
+- name: gopkg.in/fsnotify.v1
+  version: 7be54206639f256967dd82fa767397ba5f8f48f5
+- name: gopkg.in/tomb.v1
+  version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
+testImports: []

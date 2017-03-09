@@ -1,0 +1,7 @@
+package: github.com/SimonXming/dockerize
+import:
+- package: github.com/hpcloud/tail
+- package: github.com/jwilder/gojq
+- package: golang.org/x/net
+  subpackages:
+  - context
