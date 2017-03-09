@@ -18,7 +18,12 @@ import (
 type sliceVar []string
 type hostFlagsVar []string
 
+type UrlFlag struct {
+	url *url.URL
+}
+
 type Context struct {
+	ConfigCenterHost string
 }
 
 type HttpHeader struct {
@@ -50,6 +55,7 @@ var (
 	delims           []string
 	headers          []HttpHeader
 	urls             []url.URL
+	ConfigHostFlag   UrlFlag
 	waitFlag         hostFlagsVar
 	waitTimeoutFlag  time.Duration
 	dependencyChan   chan struct{}
@@ -57,6 +63,19 @@ var (
 	ctx    context.Context
 	cancel context.CancelFunc
 )
+
+func (u *UrlFlag) String() string {
+	return fmt.Sprint(u.url)
+}
+
+func (u *UrlFlag) Set(value string) error {
+	if parsedUrl, err := url.Parse(value); err != nil {
+		return err
+	} else {
+		u.url = parsedUrl
+	}
+	return nil
+}
 
 func (i *hostFlagsVar) String() string {
 	return fmt.Sprint(*i)
@@ -173,6 +192,7 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
+	flag.Var(&ConfigHostFlag, "host", "Config Center Host (http) to get remote config data e.g. http://localhost:8989")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")

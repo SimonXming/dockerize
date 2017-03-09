@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -15,6 +17,12 @@ import (
 	"github.com/jwilder/gojq"
 )
 
+type ConfigData struct {
+	IsDynamic bool   `json:"is_dynamic"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+}
+
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -24,6 +32,75 @@ func exists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func fetchRemoteConfig(url string) (string, error) {
+	var config ConfigData
+	var client = &http.Client{}
+	request, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("Create request error %s: %s", url, err)
+		return "", err
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatalf("Get response error %s: %s", url, err)
+		return "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode == 200 {
+		body, _ := ioutil.ReadAll(response.Body)
+		err := json.Unmarshal(body, &config)
+		if err != nil {
+			log.Fatalf("Parse response error %s", err)
+		}
+		return config.Value, nil
+	}
+	return "", fmt.Errorf("Response not correst")
+}
+
+func configer(args ...interface{}) (string, error) {
+	log.Println(args)
+	var (
+		configHost string
+		configUrl  string
+	)
+
+	if len(args) == 0 {
+		return "", fmt.Errorf("configer called with no values!")
+	}
+
+	if len(args) != 3 {
+		return "", fmt.Errorf("configer called with wrong values!")
+	}
+
+	if len(args) == 3 {
+		if args[0] == nil {
+			return "", fmt.Errorf("configer configHost is nil value!")
+		}
+		if args[1] == nil {
+			return "", fmt.Errorf("configer configUrl is nil value!")
+		}
+
+		if _, ok := args[0].(string); !ok {
+			return "", fmt.Errorf("configer configHost is not a string value. hint: surround it w/ double quotes.")
+		}
+		if _, ok := args[1].(string); !ok {
+			return "", fmt.Errorf("configer configUrl is not a string value. hint: surround it w/ double quotes.")
+		}
+
+		configHost = args[0].(string)
+		configUrl = args[1].(string)
+	}
+
+	configValue, err := fetchRemoteConfig(configHost + configUrl)
+	if err != nil {
+		log.Fatalf("Request Failed")
+		return "", err
+	}
+	log.Println(configValue)
+
+	return configValue, nil
 }
 
 func contains(item map[string]string, key string) bool {
@@ -93,6 +170,7 @@ func jsonQuery(jsonObj string, query string) (interface{}, error) {
 
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
+		"configer":  configer,
 		"contains":  contains,
 		"exists":    exists,
 		"split":     strings.Split,
@@ -123,8 +201,9 @@ func generateFile(templatePath, destPath string) bool {
 		}
 		defer dest.Close()
 	}
+	// log.Println(ConfigHostFlag)
 
-	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
+	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{ConfigCenterHost: ConfigHostFlag.String()})
 	if err != nil {
 		log.Fatalf("template error: %s\n", err)
 	}
