@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -60,10 +61,9 @@ func fetchRemoteConfig(url string) (string, error) {
 }
 
 func configer(args ...interface{}) (string, error) {
-	log.Println(args)
 	var (
-		configHost string
-		configUrl  string
+		configHost     string
+		configEndpoint string
 	)
 
 	if len(args) == 0 {
@@ -90,10 +90,16 @@ func configer(args ...interface{}) (string, error) {
 		}
 
 		configHost = args[0].(string)
-		configUrl = args[1].(string)
+		configEndpoint = args[1].(string)
 	}
 
-	configValue, err := fetchRemoteConfig(configHost + configUrl)
+	configUrl, err := url.Parse(configHost)
+	if err != nil {
+		log.Fatal(err)
+	}
+	configUrl.Path = path.Join(configUrl.Path, configEndpoint)
+
+	configValue, err := fetchRemoteConfig(configUrl.String())
 	if err != nil {
 		log.Fatalf("Request Failed")
 		return "", err
