@@ -1,3 +1,4 @@
 db:
-    type: {{ configer .ConfigCenterHost "/58bf79678136f344a96105ff/env-01/config-001" "mysql" }}
-    driver: {{ configer .ConfigCenterHost "/58bf79678136f344a96105ff/env-01/config-002" "pymysql"}}
+    type: {{ configer .ConfigCenterHost "/58c92fb08136f31c7a73e863/env-02/config-001" "mysql" }}
+    driver: {{ configer .ConfigCenterHost "/58c92fb08136f31c7a73e863/env-02/config-004" "pymysql"}}
+    host: {{ configer .ConfigCenterHost "/58c92fb08136f31c7a73e863/env-02/config-003" }}

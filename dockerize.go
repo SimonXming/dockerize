@@ -162,30 +162,20 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 }
 
 func usage() {
-	println(`Usage: dockerize [options] [command]
+	println(`Usage: dockerize [options]
 
-Utility to simplify running applications in docker containers
+Utility for fetch Remote Config Center.
 
 Options:`)
 	flag.PrintDefaults()
 
-	println(`
-Arguments:
-  command - command to be executed
-  `)
-
 	println(`Examples:
 `)
-	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template, tail /var/log/nginx/access.log
-   and /var/log/nginx/error.log, waiting for a website to become available on port 8000 and start nginx.`)
+	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template, waiting for a website to become available on port 8000.`)
 	println(`
    dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
-             -stdout /var/log/nginx/access.log \
-             -stderr /var/log/nginx/error.log \
-             -wait tcp://web:8000 nginx
+             -wait tcp://web:8000
 	`)
-
-	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
 
 func main() {
@@ -194,8 +184,6 @@ func main() {
 	flag.BoolVar(&poll, "poll", false, "enable polling")
 	flag.Var(&ConfigHostFlag, "host", "Config Center Host (http) to get remote config data e.g. http://localhost:8989")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
-	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
-	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
 	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
@@ -248,6 +236,8 @@ func main() {
 
 	}
 
+	waitForDependencies()
+
 	for _, t := range templatesFlag {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
@@ -267,26 +257,6 @@ func main() {
 		} else {
 			generateFile(template, dest)
 		}
-	}
-
-	waitForDependencies()
-
-	// Setup context
-	ctx, cancel = context.WithCancel(context.Background())
-
-	if flag.NArg() > 0 {
-		wg.Add(1)
-		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
-	}
-
-	for _, out := range stdoutTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, out, poll, os.Stdout)
-	}
-
-	for _, err := range stderrTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, err, poll, os.Stderr)
 	}
 
 	wg.Wait()

@@ -35,14 +35,18 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-func fetchRemoteConfig(url string) (string, error) {
+func fetchRemoteConfig(url string, defaultVal string) (string, error) {
 	var config ConfigData
 	var client = &http.Client{}
+	var urlParts = strings.Split(url, "/")
+	var configKey = urlParts[len(urlParts)-1]
+
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Create request error %s: %s", url, err)
 		return "", err
 	}
+
 	response, err := client.Do(request)
 	if err != nil {
 		log.Fatalf("Get response error %s: %s", url, err)
@@ -55,26 +59,31 @@ func fetchRemoteConfig(url string) (string, error) {
 		if err != nil {
 			log.Fatalf("Parse response error %s", err)
 		}
+		log.Printf("%s: 200 Success, fetch **Remote* '%s'", configKey, config.Value)
 		return config.Value, nil
+	} else if response.StatusCode == 404 {
+		if defaultVal != "" {
+			log.Printf("%s: 404 Not Found, use *Default* '%s'", configKey, defaultVal)
+			return defaultVal, nil
+		} else {
+			return "", fmt.Errorf("%s: (Fatal!) 404 Not Found, no *Default* value.", configKey)
+		}
 	}
-	return "", fmt.Errorf("Response not correst")
+	return "", fmt.Errorf("Response for %s error, Status code : %d", url, response.StatusCode)
 }
 
 func configer(args ...interface{}) (string, error) {
 	var (
-		configHost     string
-		configEndpoint string
+		configHost         string
+		configEndpoint     string
+		defaultConfigValue string
 	)
 
-	if len(args) == 0 {
+	if len(args) < 2 {
 		return "", fmt.Errorf("configer called with no values!")
 	}
 
-	if len(args) != 3 {
-		return "", fmt.Errorf("configer called with wrong values!")
-	}
-
-	if len(args) == 3 {
+	if len(args) >= 2 {
 		if args[0] == nil {
 			return "", fmt.Errorf("configer configHost is nil value!")
 		}
@@ -88,7 +97,9 @@ func configer(args ...interface{}) (string, error) {
 		if _, ok := args[1].(string); !ok {
 			return "", fmt.Errorf("configer configUrl is not a string value. hint: surround it w/ double quotes.")
 		}
-
+		if len(args) == 3 {
+			defaultConfigValue = args[2].(string)
+		}
 		configHost = args[0].(string)
 		configEndpoint = args[1].(string)
 	}
@@ -99,13 +110,11 @@ func configer(args ...interface{}) (string, error) {
 	}
 	configUrl.Path = path.Join(configUrl.Path, configEndpoint)
 
-	configValue, err := fetchRemoteConfig(configUrl.String())
+	configValue, err := fetchRemoteConfig(configUrl.String(), defaultConfigValue)
 	if err != nil {
-		log.Fatalf("Request Failed")
+		log.Fatal(err)
 		return "", err
 	}
-	log.Println(configValue)
-
 	return configValue, nil
 }
 

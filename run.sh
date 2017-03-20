@@ -1,1 +1,1 @@
-go run dockerize.go exec.go tail.go template.go -host http://localhost:8989 -template test/test.yaml:result.yaml
+go run dockerize.go exec.go tail.go template.go -host http://localhost:8989 -template test/test.yaml:result.yaml -wait http://192.168.13.21:8080/login -delims="{{":"}}"
